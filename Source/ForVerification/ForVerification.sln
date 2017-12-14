@@ -5,7 +5,13 @@ VisualStudioVersion = 15.0.27130.2003
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Weaving.Fody", "Weaving.Fody\Weaving.Fody.csproj", "{39ED934E-FC2B-45CA-B97B-46E4FFF9C0F2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeaveTarget", "WeaveTarget\WeaveTarget.csproj", "{5CA0D1F1-017A-4521-8265-F793BE959A11}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Weaving.Console", "Weaving.Console\Weaving.Console.csproj", "{E0E42EAF-95CB-4C12-8102-13E247905B6B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeaveTarget.Console", "WeaveTarget.Console\WeaveTarget.Console.csproj", "{98A7DF2D-B92A-402E-8D50-D95FAA6031EB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Weaving", "Weaving\Weaving.csproj", "{85295192-8E55-4118-BEB4-65E7C87D3D72}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeaveTarget", "WeaveTarget\WeaveTarget.csproj", "{4A64063D-0580-43FA-A01D-C646507A5B42}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +23,22 @@ Global
 		{39ED934E-FC2B-45CA-B97B-46E4FFF9C0F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{39ED934E-FC2B-45CA-B97B-46E4FFF9C0F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{39ED934E-FC2B-45CA-B97B-46E4FFF9C0F2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5CA0D1F1-017A-4521-8265-F793BE959A11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5CA0D1F1-017A-4521-8265-F793BE959A11}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5CA0D1F1-017A-4521-8265-F793BE959A11}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5CA0D1F1-017A-4521-8265-F793BE959A11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0E42EAF-95CB-4C12-8102-13E247905B6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0E42EAF-95CB-4C12-8102-13E247905B6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0E42EAF-95CB-4C12-8102-13E247905B6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0E42EAF-95CB-4C12-8102-13E247905B6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98A7DF2D-B92A-402E-8D50-D95FAA6031EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98A7DF2D-B92A-402E-8D50-D95FAA6031EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98A7DF2D-B92A-402E-8D50-D95FAA6031EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98A7DF2D-B92A-402E-8D50-D95FAA6031EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{85295192-8E55-4118-BEB4-65E7C87D3D72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{85295192-8E55-4118-BEB4-65E7C87D3D72}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{85295192-8E55-4118-BEB4-65E7C87D3D72}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{85295192-8E55-4118-BEB4-65E7C87D3D72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A64063D-0580-43FA-A01D-C646507A5B42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A64063D-0580-43FA-A01D-C646507A5B42}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A64063D-0580-43FA-A01D-C646507A5B42}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A64063D-0580-43FA-A01D-C646507A5B42}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

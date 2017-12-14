@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Weaving;
 
 namespace WeaveTarget
 {
@@ -10,58 +11,54 @@ namespace WeaveTarget
     {
         public int Add(int left, int right)
         {
-            int AddLocal(int arg1, int arg2)
-            {
-                return arg1 + arg2;
-            }
-            var invocation = new Invocation
-            {
-                Arguments = new object[]{left, right},
-            };
-
-            void InvokeAction()
-            {
-                invocation.ReturnValue = AddLocal(left, right);
-            }
-
-            invocation.InvokeAction = InvokeAction;
-            return AddLocal(left, right);
+            return left + right;
         }
-    }
 
-    public interface IInvocation
-    {
-        object[] Arguments { get; set; }
+        //public int AddInner(int left, int right)
+        //{
+        //    return left + right;
+        //}
 
-        void Proceed();
-
-        object ReturnValue { get; set; }
-    }
-
-    public class Invocation : IInvocation
-    {
-        public object[] Arguments { get; set; }
-
-        public Action InvokeAction { get; set; }
-
-        public void Proceed()
+        public int Add2(int value1, int value2)
         {
-            InvokeAction();
+            var invoker = new Add2Invoker(this);
+            invoker.Value1 = value1;
+            invoker.Value2 = value2;
+            return invoker.Proceed();
         }
 
-        public object ReturnValue { get; set; }
-    }
-
-    public interface IInterceptor
-    {
-        void Intercept(IInvocation invocation);
-    }
-
-    public class ConcreteInterceptor : IInterceptor
-    {
-        public void Intercept(IInvocation invocation)
+        private class Add2Invoker : IInvocation<int>
         {
-            invocation.Proceed();
+            private readonly Class1 _class1;
+
+            public int Value1;
+            public int Value2;
+            public Add2Invoker(Class1 class1)
+            {
+                _class1 = class1;
+            }
+
+            public int Proceed()
+            {
+                return _class1.Add2Inner(Value1, Value2);
+            }
+
         }
+
+        public int Add2Inner(int value1, int value2)
+        {
+            return value1 + value2;
+        }
+
+        //public int Add(int left, int right)
+        //{
+        //    return AddInner(left, right);
+        //}
+
+        //public int AddInner(int left, int right)
+        //{
+        //    return left + right;
+        //}
     }
+
 }
