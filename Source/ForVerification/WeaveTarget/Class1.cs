@@ -25,8 +25,9 @@ namespace WeaveTarget
             var type = typeof(Class1);
             var methodInfo = type.GetMethod("Add2Inner");
             var interceptorAttribute = methodInfo.GetCustomAttribute<InterceptAttribute>();
-            var invocation = new Add2Invocation(interceptorAttribute.InterceptorTypes, this)
+            var invocation = new Add2Invocation(interceptorAttribute.InterceptorTypes)
             {
+                Class1 = this,
                 Value1 = value1,
                 Value2 = value2
             };
@@ -35,19 +36,19 @@ namespace WeaveTarget
 
         private class Add2Invocation : Invocation
         {
-            private readonly Class1 _class1;
-
+            public Class1 Class1;
             public int Value1;
             public int Value2;
+            public override object[] Arguments => new object[]{Value1, Value2};
 
-            public Add2Invocation(Type[] interceptorTypes, Class1 class1) : base(interceptorTypes)
+            public Add2Invocation(Type[] interceptorTypes) : base(interceptorTypes)
             {
-                _class1 = class1;
             }
+
 
             public override object InvokeEndpoint()
             {
-                return _class1.Add2Inner(Value1, Value2);
+                return Class1.Add2Inner(Value1, Value2);
             }
         }
 

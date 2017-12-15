@@ -17,7 +17,7 @@ namespace Weaving
             }
         }
 
-        public object[] Arguments { get; set; }
+        public abstract object[] Arguments { get; }
 
         public object Invoke()
         {

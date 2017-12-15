@@ -2,7 +2,7 @@
 {
     public interface IInvocation
     {
-        object[] Arguments { get; set; }
+        object[] Arguments { get; }
         object Invoke();
     }
 }
