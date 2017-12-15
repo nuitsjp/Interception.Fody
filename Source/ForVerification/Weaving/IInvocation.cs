@@ -1,8 +1,8 @@
 ﻿namespace Weaving
 {
-    public interface IInvocation<out T>
+    public interface IInvocation
     {
-        T Proceed();
+        object[] Arguments { get; set; }
+        object Invoke();
     }
-
 }

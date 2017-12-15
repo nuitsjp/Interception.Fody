@@ -62,9 +62,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Weaving\Weaving.csproj">
-      <Project>{85295192-8e55-4118-beb4-65e7c87d3d72}</Project>
-      <Name>Weaving</Name>
+    <ProjectReference Include="..\Weaving.Fody\Weaving.Fody.csproj">
+      <Project>{39ed934e-fc2b-45ca-b97b-46e4fff9c0f2}</Project>
+      <Name>Weaving.Fody</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

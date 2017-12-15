@@ -25,8 +25,8 @@ namespace Weaving.Console
             {
                 var module = ModuleDefinition.ReadModule(stream);
 
-                var weaver = new Weaver();
-                weaver.Weave(module);
+                var weaver = new ModuleWeaver {ModuleDefinition = module};
+                weaver.Execute();
                 //var type = module.Types.Single(x => x.Name == "Class1");
 
                 //var addMethod = type.Methods.Single(x => x.Name == "Add");
