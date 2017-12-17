@@ -22,6 +22,18 @@ namespace WeaveTarget
 
         public int Add2(int value1, int value2)
         {
+            //Func<int, int, int> func = (arg1, arg2) =>
+            //{
+            //    return arg1 + arg2;
+            //};
+            //return func(value1, value2);
+
+            //int Func(int arg1, int arg2)
+            //{
+            //    return arg1 + arg2;
+            //}
+
+            //return Func(value1, value2);
             var type = typeof(Class1);
             var methodInfo = type.GetMethod("Add2Inner");
             var interceptorAttribute = methodInfo.GetCustomAttribute<InterceptAttribute>();
@@ -36,17 +48,17 @@ namespace WeaveTarget
 
         private class Add2Invocation : Invocation
         {
-            public Class1 Class1;
-            public int Value1;
-            public int Value2;
+            internal Class1 Class1;
+            internal int Value1;
+            internal int Value2;
             public override object[] Arguments => new object[]{Value1, Value2};
 
-            public Add2Invocation(Type[] interceptorTypes) : base(interceptorTypes)
+            internal Add2Invocation(Type[] interceptorTypes) : base(interceptorTypes)
             {
             }
 
 
-            public override object InvokeEndpoint()
+            protected override object InvokeEndpoint()
             {
                 return Class1.Add2Inner(Value1, Value2);
             }

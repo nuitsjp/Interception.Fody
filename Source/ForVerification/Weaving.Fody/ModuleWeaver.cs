@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Mono.Cecil;
@@ -8,6 +9,7 @@ using Weaving;
 using FieldAttributes = Mono.Cecil.FieldAttributes;
 using MethodAttributes = Mono.Cecil.MethodAttributes;
 using ParameterAttributes = Mono.Cecil.ParameterAttributes;
+using PropertyAttributes = Mono.Cecil.PropertyAttributes;
 using TypeAttributes = Mono.Cecil.TypeAttributes;
 
 public class ModuleWeaver
@@ -36,7 +38,7 @@ public class ModuleWeaver
 
         var addMethod = type.Methods.Single(x => x.Name == "Add");
         //var addInnerMethod = type.Methods.Single(x => x.Name == "AddInner");
-        //addMethod.Name = "AddInner";
+        addMethod.Name = "AddInner";
         addMethod.Attributes &= ~MethodAttributes.Public;
         addMethod.Attributes |= MethodAttributes.Private;
         //addInnerMethod.Name = "Add";
@@ -117,7 +119,7 @@ public class ModuleWeaver
         innerInvoker.BaseType = invocationType;
 
         // Constructor
-        var methodAttributes = MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName |
+        var methodAttributes = MethodAttributes.Assembly | MethodAttributes.HideBySig | MethodAttributes.SpecialName |
                                MethodAttributes.RTSpecialName;
         var constructor = new MethodDefinition(".ctor", methodAttributes, ModuleDefinition.TypeSystem.Void);
         constructor.Parameters.Add(new ParameterDefinition("interceptorTypes", ParameterAttributes.None, ModuleDefinition.ImportReference(typeof(Type).MakeArrayType())));
@@ -128,13 +130,60 @@ public class ModuleWeaver
         constructor.Body.Instructions.Add(Instruction.Create(OpCodes.Call, ModuleDefinition.ImportReference(baseConstructor)));
         constructor.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
 
-        innerInvoker.Fields.Add(new FieldDefinition(parent.Name, FieldAttributes.Public, parent));
+        // Fields
+        var parentField = new FieldDefinition(parent.Name, FieldAttributes.Assembly, parent);
+        innerInvoker.Fields.Add(parentField);
 
+        var valueFieldDefinitions = new List<FieldDefinition>();
         foreach (var (parameter, index) in targetMethod.Parameters.Select((parameter, index) => (parameter, index)))
         {
-            innerInvoker.Fields.Add(new FieldDefinition($"Value{index + 1}", FieldAttributes.Public, parameter.ParameterType));
+            var valueFieldDefinition =
+                new FieldDefinition($"Value{index + 1}", FieldAttributes.Assembly, parameter.ParameterType);
+            valueFieldDefinitions.Add(valueFieldDefinition);
+            innerInvoker.Fields.Add(valueFieldDefinition);
         }
         
+        // Properties
+        var arguments = new PropertyDefinition("Arguments", PropertyAttributes.None, ModuleDefinition.ImportReference(typeof(object).MakeArrayType())){HasThis = true};
+
+        var getArgumentsAttributes =
+            MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName |
+            MethodAttributes.Virtual;
+        var getArguments = new MethodDefinition("get_Arguments", getArgumentsAttributes, ModuleDefinition.ImportReference(typeof(object).MakeArrayType())){HasThis = true};
+        getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Ldc_I4, targetMethod.Parameters.Count));
+        getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Newarr, ModuleDefinition.TypeSystem.Object));
+        getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Dup));
+
+        foreach (var (fieldDefinition, index) in valueFieldDefinitions.Select((fieldDefinition, index) => (fieldDefinition, index)))
+        {
+            getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Ldc_I4, index));
+            getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
+            getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Ldfld, fieldDefinition));
+            getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Box, ModuleDefinition.TypeSystem.Int32));
+            getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Stelem_Ref));
+        }
+
+        getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+        innerInvoker.Methods.Add(getArguments);
+
+        arguments.GetMethod = getArguments;
+        innerInvoker.Properties.Add(arguments);
+
+        // InvokeEndpoint
+        var invokeEndpointAttribute = MethodAttributes.Family | MethodAttributes.HideBySig | MethodAttributes.Virtual;
+        var invokeEndpoint = new MethodDefinition("InvokeEndpoint", invokeEndpointAttribute, ModuleDefinition.TypeSystem.Object);
+        invokeEndpoint.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
+        invokeEndpoint.Body.Instructions.Add(Instruction.Create(OpCodes.Ldfld, parentField));
+        foreach (var valueFieldDefinition in valueFieldDefinitions)
+        {
+            invokeEndpoint.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
+            invokeEndpoint.Body.Instructions.Add(Instruction.Create(OpCodes.Ldfld, valueFieldDefinition));
+        }
+        invokeEndpoint.Body.Instructions.Add(Instruction.Create(OpCodes.Callvirt, targetMethod));
+        invokeEndpoint.Body.Instructions.Add(Instruction.Create(OpCodes.Box, ModuleDefinition.TypeSystem.Int32));
+        invokeEndpoint.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+        innerInvoker.Methods.Add(invokeEndpoint);
+
 
         innerInvoker.Methods.Add(constructor);
         return innerInvoker;

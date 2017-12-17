@@ -32,6 +32,6 @@ namespace Weaving
             }
         }
 
-        public abstract object InvokeEndpoint();
+        protected abstract object InvokeEndpoint();
     }
 }
