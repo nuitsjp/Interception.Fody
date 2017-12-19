@@ -93,6 +93,19 @@ public class ModuleWeaver
         // new AddInvocation
         var innerInvokerConstructor = innerInvoker.GetConstructors().Single();
         method.Body.Instructions.Add(Instruction.Create(OpCodes.Newobj, innerInvokerConstructor));
+        // AddInvocation.Class = this
+        method.Body.Instructions.Add(Instruction.Create(OpCodes.Dup));
+        method.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
+        ////  AddInvocation.ValueN = ParamN
+        //for (int i = 1; i <= originalMethod.Parameters.Count; i++)
+        //{
+        //    method.Body.Instructions.Add(Instruction.Create(OpCodes.Dup));
+        //    method.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg, i));
+        //}
+        // invocation.Invoke();
+        //var invoke = typeof(IInvocation).GetTypeInfo().DeclaredMethods.Single(x => x.Name == "Invoke");
+        //method.Body.Instructions.Add(Instruction.Create(OpCodes.Callvirt, ModuleDefinition.ImportReference(invoke)));
+
 
         method.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
 
@@ -172,8 +185,9 @@ public class ModuleWeaver
         var invocationType = ModuleDefinition.ImportReference(typeof(Invocation));
         
 
-        var innerInvoker = new TypeDefinition(parent.Namespace, "AddInnerInvoker", TypeAttributes.NotPublic);
+        var innerInvoker = new TypeDefinition(parent.Namespace, "AddInnerInvoker", TypeAttributes.NotPublic | TypeAttributes.NestedPrivate);
         innerInvoker.BaseType = invocationType;
+
 
         // Constructor
         var methodAttributes = MethodAttributes.Assembly | MethodAttributes.HideBySig | MethodAttributes.SpecialName |
