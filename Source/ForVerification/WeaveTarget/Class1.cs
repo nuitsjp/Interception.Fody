@@ -10,9 +10,15 @@ namespace WeaveTarget
 {
     public class Class1
     {
+        [Intercept(typeof(LoggingInterceptor))]
         public int Add(int left, int right)
         {
             return left + right;
+        }
+
+        public object GetInterceptAttribute()
+        {
+            return null;
         }
 
         //public int AddInner(int left, int right)

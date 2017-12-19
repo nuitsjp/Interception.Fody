@@ -43,58 +43,13 @@ public class ModuleWeaver
         addMethod.Attributes |= MethodAttributes.Private;
         //addInnerMethod.Name = "Add";
 
-        var targetMethod =
-            new MethodDefinition("Add", MethodAttributes.Public | MethodAttributes.HideBySig, type)
-            {
-                Body =
-                {
-                        MaxStackSize = addMethod.Parameters.Count + 1,
-                        InitLocals = true
-                },
-                ReturnType = addMethod.ReturnType
-            };
-
-        targetMethod.Body.Variables.Add(new VariableDefinition(ModuleDefinition.ImportReference(typeof(MethodInfo))));
-        targetMethod.Body.Variables.Add(new VariableDefinition(ModuleDefinition.ImportReference(typeof(InterceptAttribute))));
-        targetMethod.Body.Variables.Add(new VariableDefinition(addMethod.ReturnType));
-
-        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Nop));
-
-        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ldtoken, addMethod));
-        var getMethodFromHandle =
-            typeof(MethodBase).GetMethod("GetMethodFromHandle", new [] {typeof(RuntimeMethodHandle)});
-        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Call, ModuleDefinition.ImportReference(getMethodFromHandle)));
-        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Stloc_0));
-        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ldloc_0));
-        var getCustomAttribute = typeof(CustomAttributeExtensions).GetMethods()
-            .Where(x => x.Name == "GetCustomAttribute" && x.GetGenericArguments().Length == 1)
-            .Single(x =>
-            {
-                var parameters = x.GetParameters();
-                return parameters.Length == 1 && parameters[0].ParameterType == typeof(MemberInfo);
-            });
-        var genericGetCustomAttribute = getCustomAttribute.MakeGenericMethod(typeof(InterceptAttribute));
-        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Call, ModuleDefinition.ImportReference(genericGetCustomAttribute)));
-        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Stloc_1));
-
-
-        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ldstr, $"DEBUG LOG: {addMethod.DeclaringType.Name}#{addMethod.Name}()"));
-        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Call, ModuleDefinition.ImportReference(DebugWriteLine)));
-        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
-        addMethod.Parameters.ToList().ForEach(x =>
-        {
-            targetMethod.Parameters.Add(x);
-            targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_S, x));
-        });
-        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Call, addMethod));
-
-        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Stloc_2));
-        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ldloc_2));
-        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+        var targetMethod = CreateAddMethod(type, addMethod);
 
         type.Methods.Add(targetMethod);
 
-        type.NestedTypes.Add(CreateInnerInvoker(type, addMethod));
+        var innerInvoker = CreateInnerInvoker(type, addMethod);
+        type.NestedTypes.Add(innerInvoker);
+        CreateGetInterceptAttribute(type, addMethod, innerInvoker);
 
         //var methods = module
         //    .Types
@@ -108,6 +63,108 @@ public class ModuleWeaver
         //    processor.InsertBefore(current, Instruction.Create(OpCodes.Ldstr, $"DEBUG LOG: {method.DeclaringType.Name}#{method.Name}()"));
         //    processor.InsertBefore(current, Instruction.Create(OpCodes.Call, module.ImportReference(DebugWriteLine)));
         //}
+    }
+
+    private void CreateGetInterceptAttribute(TypeDefinition type, MethodDefinition originalMethod, TypeDefinition innerInvoker)
+    {
+        var method = type.Methods.Single(x => x.Name == "GetInterceptAttribute");
+        method.Body.Instructions.Clear();
+
+        // MethodInfo methodInfo = type.GetMethod("Add2Inner");
+        method.Body.Instructions.Add(Instruction.Create(OpCodes.Ldtoken, originalMethod));
+        var getMethodFromHandle =
+            typeof(MethodBase).GetMethod("GetMethodFromHandle", new[] { typeof(RuntimeMethodHandle) });
+        method.Body.Instructions.Add(Instruction.Create(OpCodes.Call, ModuleDefinition.ImportReference(getMethodFromHandle)));
+
+        // InterceptAttribute interceptorAttribute = ((MemberInfo)methodInfo).GetCustomAttribute<InterceptAttribute>();
+        var getCustomAttribute = typeof(CustomAttributeExtensions).GetMethods()
+            .Where(x => x.Name == "GetCustomAttribute" && x.GetGenericArguments().Length == 1)
+            .Single(x =>
+            {
+                var parameters = x.GetParameters();
+                return parameters.Length == 1 && parameters[0].ParameterType == typeof(MemberInfo);
+            }).MakeGenericMethod(typeof(InterceptAttribute));
+        method.Body.Instructions.Add(Instruction.Create(OpCodes.Call, ModuleDefinition.ImportReference(getCustomAttribute)));
+
+        // interceptorAttribute.InterceptorTypes
+        var get_InterceptorTypes = typeof(InterceptAttribute).GetTypeInfo().GetMethod("get_InterceptorTypes");
+        method.Body.Instructions.Add(Instruction.Create(OpCodes.Call, ModuleDefinition.ImportReference(get_InterceptorTypes)));
+
+        // new AddInvocation
+        var innerInvokerConstructor = innerInvoker.GetConstructors().Single();
+        method.Body.Instructions.Add(Instruction.Create(OpCodes.Newobj, innerInvokerConstructor));
+
+        method.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+
+
+
+
+        //method.Body.Instructions.Add(Instruction.Create(OpCodes.Ldtoken, originalMethod));
+        //var getMethodFromHandle =
+        //    typeof(MethodBase).GetMethod("GetMethodFromHandle", new[] { typeof(RuntimeMethodHandle) });
+        //method.Body.Instructions.Add(Instruction.Create(OpCodes.Call, ModuleDefinition.ImportReference(getMethodFromHandle)));
+        //method.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+
+    }
+
+    private MethodDefinition CreateAddMethod(TypeDefinition type, MethodDefinition originalMethod)
+    {
+        var targetMethod =
+            new MethodDefinition("Add", MethodAttributes.Public | MethodAttributes.HideBySig, type)
+            {
+                Body =
+                {
+                    MaxStackSize = originalMethod.Parameters.Count + 1,
+                    InitLocals = true
+                },
+                ReturnType = originalMethod.ReturnType
+            };
+
+        // ローカル変数定義
+        targetMethod.Body.Variables.Add(new VariableDefinition(ModuleDefinition.ImportReference(typeof(MethodInfo))));
+        targetMethod.Body.Variables.Add(new VariableDefinition(ModuleDefinition.ImportReference(typeof(InterceptAttribute))));
+        // 戻り値型定義
+        targetMethod.Body.Variables.Add(new VariableDefinition(originalMethod.ReturnType));
+
+        // 
+        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ldtoken, originalMethod));
+        var getMethodFromHandle =
+            typeof(MethodBase).GetMethod("GetMethodFromHandle", new[] { typeof(RuntimeMethodHandle) });
+        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Call,
+            ModuleDefinition.ImportReference(getMethodFromHandle)));
+        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Stloc_0));
+
+        // InterceptAttribute customAttribute = ((MemberInfo)methodFromHandle).GetCustomAttribute<InterceptAttribute>();
+        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ldloc_0));
+        var getCustomAttribute = typeof(CustomAttributeExtensions).GetMethods()
+            .Where(x => x.Name == "GetCustomAttribute" && x.GetGenericArguments().Length == 1)
+            .Single(x =>
+            {
+                var parameters = x.GetParameters();
+                return parameters.Length == 1 && parameters[0].ParameterType == typeof(MemberInfo);
+            });
+        var genericGetCustomAttribute = getCustomAttribute.MakeGenericMethod(typeof(InterceptAttribute));
+        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Call,
+            ModuleDefinition.ImportReference(genericGetCustomAttribute)));
+        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Stloc_1));
+
+
+        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ldstr,
+            $"DEBUG LOG: {originalMethod.DeclaringType.Name}#{originalMethod.Name}()"));
+        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Call,
+            ModuleDefinition.ImportReference(DebugWriteLine)));
+        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
+        originalMethod.Parameters.ToList().ForEach(x =>
+        {
+            targetMethod.Parameters.Add(x);
+            targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_S, x));
+        });
+        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Call, originalMethod));
+
+        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Stloc_2));
+        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ldloc_2));
+        targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+        return targetMethod;
     }
 
     private TypeDefinition CreateInnerInvoker(TypeDefinition parent, MethodDefinition targetMethod)
