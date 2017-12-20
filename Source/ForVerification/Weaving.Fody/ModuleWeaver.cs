@@ -96,7 +96,7 @@ public class ModuleWeaver
         method.Body.Instructions.Add(Instruction.Create(OpCodes.Newobj, innerInvokerConstructor));
         // AddInvocation.Class = this
         method.Body.Instructions.Add(Instruction.Create(OpCodes.Dup));
-        method.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg, 0));
+        method.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
         method.Body.Instructions.Add(Instruction.Create(OpCodes.Stfld, innerInvoker.ParentTypeFieldDefinition));
         //  AddInvocation.ValueN = ParamN
         //method.Body.Instructions.Add(Instruction.Create(OpCodes.Dup));
@@ -106,15 +106,15 @@ public class ModuleWeaver
         //method.Body.Instructions.Add(Instruction.Create(OpCodes.Dup));
         //method.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_2));
         //method.Body.Instructions.Add(Instruction.Create(OpCodes.Stfld, innerInvoker.ParameterFieldDefinisions.First()));
-        //for (int i = 1; i <= innerInvoker.ParameterFieldDefinisions.Count; i++)
-        //{
-        //    method.Body.Instructions.Add(Instruction.Create(OpCodes.Dup));
-        //    method.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_1));
-        //    method.Body.Instructions.Add(Instruction.Create(OpCodes.Stfld, innerInvoker.ParameterFieldDefinisions[i - 1]));
-        //}
+        for (int i = 0; i < innerInvoker.ParameterFieldDefinisions.Count; i++)
+        {
+            method.Body.Instructions.Add(Instruction.Create(OpCodes.Dup));
+            method.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg, method.Parameters[i]));
+            method.Body.Instructions.Add(Instruction.Create(OpCodes.Stfld, innerInvoker.ParameterFieldDefinisions[i]));
+        }
         // invocation.Invoke();
-        //var invoke = typeof(IInvocation).GetTypeInfo().DeclaredMethods.Single(x => x.Name == "Invoke");
-        //method.Body.Instructions.Add(Instruction.Create(OpCodes.Callvirt, ModuleDefinition.ImportReference(invoke)));
+        var invoke = typeof(IInvocation).GetTypeInfo().DeclaredMethods.Single(x => x.Name == "Invoke");
+        method.Body.Instructions.Add(Instruction.Create(OpCodes.Callvirt, ModuleDefinition.ImportReference(invoke)));
 
 
         method.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
