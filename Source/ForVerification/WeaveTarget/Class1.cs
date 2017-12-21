@@ -16,7 +16,7 @@ namespace WeaveTarget
             return left + right;
         }
 
-        public object GetInterceptAttribute()
+        public object GetInterceptAttribute(int left, int right)
         {
             return null;
         }
