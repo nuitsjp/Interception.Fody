@@ -16,6 +16,17 @@ namespace WeaveTarget
             return left + right;
         }
 
+        [Intercept(typeof(LoggingInterceptor))]
+        public string Join(string[] strings)
+        {
+            return string.Join(", ", strings);
+        }
+
+        public string Join2(params string[] strings)
+        {
+            return string.Join(", ", strings);
+        }
+
         public object GetInterceptAttribute(int left, int right)
         {
             return null;

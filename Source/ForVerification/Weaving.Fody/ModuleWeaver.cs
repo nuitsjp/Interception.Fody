@@ -35,36 +35,29 @@ public class ModuleWeaver
 
     public void Execute()
     {
-        var type = ModuleDefinition.Types.Single(x => x.Name == "Class1");
+        var methods = 
+            ModuleDefinition.Types.SelectMany(
+                x => x.Methods.Where(
+                    method => method.CustomAttributes.Any(
+                        attribute => attribute.AttributeType.FullName == typeof(InterceptAttribute).FullName))).Distinct().ToList();
+        foreach (var methodDefinition in methods)
+        {
+            var originalName = methodDefinition.Name;
+            var type = methodDefinition.DeclaringType;
 
-        var addMethod = type.Methods.Single(x => x.Name == "Add");
-        //var addInnerMethod = type.Methods.Single(x => x.Name == "AddInner");
-        var originalName = addMethod.Name;
-        addMethod.Name = "AddInner";
-        addMethod.Attributes &= ~MethodAttributes.Public;
-        addMethod.Attributes |= MethodAttributes.Private;
-        //addInnerMethod.Name = "Add";
+            methodDefinition.Name = methodDefinition.Name + "Inner";
+            methodDefinition.Attributes &= ~MethodAttributes.Public;
+            methodDefinition.Attributes |= MethodAttributes.Private;
 
 
-        var innerInvoker = InnerInvoker.Create(ModuleDefinition, type, addMethod);
-        var targetMethod = CreateAddMethod(type, addMethod, innerInvoker, originalName);
+            var innerInvoker = InnerInvoker.Create(ModuleDefinition, type, methodDefinition);
+            var targetMethod = CreateAddMethod(type, methodDefinition, innerInvoker, originalName);
 
-        type.Methods.Add(targetMethod);
-        type.NestedTypes.Add(innerInvoker.TypeDefinition);
-        CreateGetInterceptAttribute(type, addMethod, innerInvoker);
+            type.Methods.Add(targetMethod);
+            type.NestedTypes.Add(innerInvoker.TypeDefinition);
 
-        //var methods = module
-        //    .Types
-        //    .SelectMany(x => x.Methods);
-        //foreach (var method in methods)
-        //{
-        //    var processor = method.Body.GetILProcessor();
-        //    var current = method.Body.Instructions.First();
-
-        //    processor.InsertBefore(current, Instruction.Create(OpCodes.Nop));
-        //    processor.InsertBefore(current, Instruction.Create(OpCodes.Ldstr, $"DEBUG LOG: {method.DeclaringType.Name}#{method.Name}()"));
-        //    processor.InsertBefore(current, Instruction.Create(OpCodes.Call, module.ImportReference(DebugWriteLine)));
-        //}
+            //CreateGetInterceptAttribute(type, methodDefinition, innerInvoker);
+        }
     }
 
     private void CreateGetInterceptAttribute(TypeDefinition type, MethodDefinition originalMethod, InnerInvoker innerInvoker)
@@ -168,6 +161,8 @@ public class ModuleWeaver
         // invocation.Invoke();
         var invoke = typeof(IInvocation).GetTypeInfo().DeclaredMethods.Single(x => x.Name == "Invoke");
         targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Callvirt, ModuleDefinition.ImportReference(invoke)));
+        if(targetMethod.ReturnType.IsPrimitive)
+            targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Unbox_Any, targetMethod.ReturnType));
 
         targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
         return targetMethod;
