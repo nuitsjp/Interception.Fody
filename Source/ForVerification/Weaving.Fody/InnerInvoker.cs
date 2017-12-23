@@ -73,7 +73,8 @@ namespace Weaving.Fody
                 getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Ldc_I4, index));
                 getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
                 getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Ldfld, fieldDefinition));
-                getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Box, moduleDefinition.TypeSystem.Int32));
+                if(fieldDefinition.FieldType.IsPrimitive)
+                    getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Box, fieldDefinition.FieldType));
                 getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Stelem_Ref));
             }
 
@@ -94,7 +95,8 @@ namespace Weaving.Fody
                 invokeEndpoint.Body.Instructions.Add(Instruction.Create(OpCodes.Ldfld, valueFieldDefinition));
             }
             invokeEndpoint.Body.Instructions.Add(Instruction.Create(OpCodes.Callvirt, targetMethod));
-            invokeEndpoint.Body.Instructions.Add(Instruction.Create(OpCodes.Box, moduleDefinition.TypeSystem.Int32));
+            if(targetMethod.ReturnType.IsPrimitive)
+                invokeEndpoint.Body.Instructions.Add(Instruction.Create(OpCodes.Box, targetMethod.ReturnType));
             invokeEndpoint.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
             innerInvoker.Methods.Add(invokeEndpoint);
 
