@@ -39,6 +39,7 @@ public class ModuleWeaver
 
         var addMethod = type.Methods.Single(x => x.Name == "Add");
         //var addInnerMethod = type.Methods.Single(x => x.Name == "AddInner");
+        var originalName = addMethod.Name;
         addMethod.Name = "AddInner";
         addMethod.Attributes &= ~MethodAttributes.Public;
         addMethod.Attributes |= MethodAttributes.Private;
@@ -46,7 +47,7 @@ public class ModuleWeaver
 
 
         var innerInvoker = InnerInvoker.Create(ModuleDefinition, type, addMethod);
-        var targetMethod = CreateAddMethod(type, addMethod, innerInvoker);
+        var targetMethod = CreateAddMethod(type, addMethod, innerInvoker, originalName);
 
         type.Methods.Add(targetMethod);
         type.NestedTypes.Add(innerInvoker.TypeDefinition);
@@ -112,10 +113,10 @@ public class ModuleWeaver
         targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
     }
 
-    private MethodDefinition CreateAddMethod(TypeDefinition type, MethodDefinition originalMethod, InnerInvoker innerInvoker)
+    private MethodDefinition CreateAddMethod(TypeDefinition type, MethodDefinition originalMethod, InnerInvoker innerInvoker, string originalName)
     {
         var targetMethod =
-            new MethodDefinition("Add", MethodAttributes.Public | MethodAttributes.HideBySig, type)
+            new MethodDefinition(originalName, MethodAttributes.Public | MethodAttributes.HideBySig, type)
             {
                 Body =
                 {

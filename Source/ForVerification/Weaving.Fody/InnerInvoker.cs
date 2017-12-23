@@ -25,7 +25,7 @@ namespace Weaving.Fody
 
         public static  InnerInvoker Create(ModuleDefinition moduleDefinition, TypeDefinition parent, MethodDefinition targetMethod)
         {
-            var innerInvoker = new TypeDefinition(parent.Namespace, $"{targetMethod.Name}InnerInvoker", TypeAttributes.NotPublic | TypeAttributes.NestedPrivate);
+            var innerInvoker = new TypeDefinition(parent.Namespace, $"{targetMethod.Name}Invoker", TypeAttributes.NotPublic | TypeAttributes.NestedPrivate);
             var result = new InnerInvoker(innerInvoker);
 
             var invocationType = moduleDefinition.ImportReference(typeof(Invocation));
