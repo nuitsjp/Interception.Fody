@@ -66,10 +66,10 @@ namespace Weaving.Fody
             var getArguments = new MethodDefinition("get_Arguments", getArgumentsAttributes, moduleDefinition.ImportReference(typeof(object).MakeArrayType())) { HasThis = true };
             getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Ldc_I4, targetMethod.Parameters.Count));
             getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Newarr, moduleDefinition.TypeSystem.Object));
-            getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Dup));
 
             foreach (var (fieldDefinition, index) in result.ParameterFieldDefinisions.Select((fieldDefinition, index) => (fieldDefinition, index)))
             {
+                getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Dup));
                 getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Ldc_I4, index));
                 getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
                 getArguments.Body.Instructions.Add(Instruction.Create(OpCodes.Ldfld, fieldDefinition));

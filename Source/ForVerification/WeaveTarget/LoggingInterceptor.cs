@@ -12,7 +12,7 @@ namespace WeaveTarget
     {
         public object Intercept(IInvocation invocation)
         {
-            Debug.WriteLine("Log");
+            Debug.WriteLine($"Log Arguments:{string.Join(", ", invocation.Arguments)}");
             return invocation.Invoke();
         }
     }
