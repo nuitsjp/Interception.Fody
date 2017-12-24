@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Weavers>
+  <Weaving>
+    <InterceptorSets>
+      <InterceptorSet Name="">
+        <Interceptor Type=""/>
+      </InterceptorSet>
+    </InterceptorSets>
+  </Weaving>
+</Weavers>

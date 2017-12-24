@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Type="http://schemas.microsoft.com/packaging/2010/07/manifest" Target="/Interception.Fody.nuspec" Id="Rf9036cf2d0114518" />
+  <Relationship Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="/package/services/metadata/core-properties/952c04fffde44855a5c871874b6cc837.psmdcp" Id="Rc4ffa3a94a8e40cc" />
+</Relationships>
