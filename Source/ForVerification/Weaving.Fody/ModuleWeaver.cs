@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Rocks;
+using Reactive.Bindings;
 using Weaving;
 using Weaving.Fody;
 using FieldAttributes = Mono.Cecil.FieldAttributes;
@@ -35,11 +37,43 @@ public class ModuleWeaver
 
     public void Execute()
     {
-        var methods = 
+        WeaveInterceptor();
+        WeaveTracker();
+    }
+
+    private void WeaveTracker()
+    {
+        var types =
+            ModuleDefinition.Types.Where(
+                    x => x.CustomAttributes.Any(
+                            attribute => attribute.AttributeType.FullName == typeof(TrackEventAttribute).FullName))
+                .ToList();
+        var initMethod = 
+            ModuleDefinition.ImportReference(typeof(TrackEventInitializer).GetMethods().Single(x => x.Name == "Init"));
+        types.ForEach(x => WeaveTracker(x, initMethod));
+    }
+
+    private void WeaveTracker(TypeDefinition typeDefinition, MethodReference initMethodReference)
+    {
+        foreach (var constructor in typeDefinition.GetConstructors())
+        {
+            var body = constructor.Body;
+            body.Instructions.Remove(body.Instructions.Last());
+            body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
+            body.Instructions.Add(Instruction.Create(OpCodes.Call, initMethodReference));
+            body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+        }
+    }
+
+    private void WeaveInterceptor()
+    {
+        var methods =
             ModuleDefinition.Types.SelectMany(
-                x => x.Methods.Where(
-                    method => method.CustomAttributes.Any(
-                        attribute => attribute.AttributeType.FullName == typeof(InterceptAttribute).FullName))).Distinct().ToList();
+                    x => x.Methods.Where(
+                        method => method.CustomAttributes.Any(
+                            attribute => attribute.AttributeType.FullName == typeof(InterceptAttribute).FullName)))
+                .Distinct()
+                .ToList();
         foreach (var methodDefinition in methods)
         {
             var originalName = methodDefinition.Name;
@@ -68,7 +102,8 @@ public class ModuleWeaver
         // MethodInfo methodInfo = type.GetMethod("Add2Inner");
         targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ldtoken, originalMethod));
         var getMethodFromHandle =
-            typeof(MethodBase).GetMethod("GetMethodFromHandle", new[] { typeof(RuntimeMethodHandle) });
+            typeof(MethodBase).GetTypeInfo().GetDeclaredMethods("GetMethodFromHandle")
+                .Single(x => x.GetParameters().Length == 1 && x.GetParameters().Count(y => y.ParameterType.Name == "RuntimeMethodHandle") == 1);
         targetMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Call, ModuleDefinition.ImportReference(getMethodFromHandle)));
 
         // InterceptAttribute interceptorAttribute = ((MemberInfo)methodInfo).GetCustomAttribute<InterceptAttribute>();

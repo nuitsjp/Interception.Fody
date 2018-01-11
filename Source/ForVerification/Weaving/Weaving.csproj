@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="FodyCecil" Version="2.2.1" />
+    <PackageReference Include="ReactiveProperty" Version="4.0.0" />
   </ItemGroup>
 
 </Project>
