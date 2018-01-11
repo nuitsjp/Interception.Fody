@@ -18,7 +18,7 @@ namespace WeaveTarget
 
         public MainPageViewModel()
         {
-            IntProperty.Skip(1).Subscribe();
+            //IntProperty.Skip(1).Subscribe();
             //TrackEventInitializer.Init(this);
         }
     }
