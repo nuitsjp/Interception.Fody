@@ -13,14 +13,9 @@ namespace WeaveTarget
     [TrackEvent(typeof(EventTracker))]
     public class MainPageViewModel
     {
-        public bool BoolProperty { get; set; }
-        public ReactiveProperty<int> IntProperty { get; } = new ReactiveProperty<int>();
-
-        public MainPageViewModel()
-        {
-            //IntProperty.Skip(1).Subscribe();
-            //TrackEventInitializer.Init(this);
-        }
+        private readonly EventTrackerManager _eventTrackerManager = new EventTrackerManager();
+        //public bool BoolProperty { get; set; }
+        //public ReactiveProperty<int> IntProperty { get; } = new ReactiveProperty<int>();
     }
 
     public class EventTracker : IEventTracker

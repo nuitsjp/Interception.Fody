@@ -37,7 +37,7 @@ public class ModuleWeaver
 
     public void Execute()
     {
-        WeaveInterceptor();
+        //WeaveInterceptor();
         WeaveTracker();
     }
 
@@ -55,6 +55,8 @@ public class ModuleWeaver
 
     private void WeaveTracker(TypeDefinition typeDefinition, MethodReference initMethodReference)
     {
+        CreateGlobalTrackerHolder();
+        SetEventTrackerManagerField(typeDefinition);
         foreach (var constructor in typeDefinition.GetConstructors())
         {
             var body = constructor.Body;
@@ -64,6 +66,36 @@ public class ModuleWeaver
             body.Instructions.Add(Instruction.Create(OpCodes.Ret));
         }
     }
+
+    private void CreateGlobalTrackerHolder()
+    {
+        var holder = 
+            new TypeDefinition(
+                ModuleDefinition.Assembly.Name.Name, 
+                "GlobalEventTrackerHolder", 
+                TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit);
+        ModuleDefinition.Types.Add(holder);
+    }
+
+    private void SetEventTrackerManagerField(TypeDefinition typeDefinition)
+    {
+        var eventTrackManager =
+            new FieldDefinition(
+                "__eventTrackerManager", 
+                FieldAttributes.Private | FieldAttributes.InitOnly, 
+                ModuleDefinition.ImportReference(typeof(EventTrackerManager)));
+        typeDefinition.Fields.Add(eventTrackManager);
+
+        var eventTrackerManagerCtor =
+            ModuleDefinition.ImportReference(typeof(EventTrackerManager).GetConstructor(new Type[] { }));
+
+        var constructor = typeDefinition.GetConstructors().Single(x => x.Parameters.Count == 0);
+        var body = constructor.Body;
+        body.Instructions.Insert(0, Instruction.Create(OpCodes.Ldarg_0));
+        body.Instructions.Insert(1, Instruction.Create(OpCodes.Newobj, eventTrackerManagerCtor));
+        body.Instructions.Insert(2, Instruction.Create(OpCodes.Stfld, eventTrackManager));
+    }
+
 
     private void WeaveInterceptor()
     {

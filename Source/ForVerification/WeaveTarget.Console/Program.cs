@@ -11,7 +11,7 @@ namespace WeaveTarget.Console
         static void Main(string[] args)
         {
             var viewModel = new MainPageViewModel();
-            viewModel.IntProperty.Value = 2;
+            //viewModel.IntProperty.Value = 2;
             //var class1 = new Class1();
             //System.Console.WriteLine(class1.GetInterceptAttribute(1, 2));
             //System.Console.WriteLine(class1.Add(1, 2));
