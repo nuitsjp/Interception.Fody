@@ -5,8 +5,12 @@ using System.Text;
 
 namespace Weaving
 {
-    public class EventTrackerManager
+    public abstract class EventTrackerManagerBase
     {
         public IEventTracker GlobalEventTracker { get; set; }
+
+        protected EventTrackerManagerBase()
+        {
+        }
     }
 }

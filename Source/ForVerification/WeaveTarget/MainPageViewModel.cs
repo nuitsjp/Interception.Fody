@@ -13,7 +13,7 @@ namespace WeaveTarget
     [TrackEvent(typeof(EventTracker))]
     public class MainPageViewModel
     {
-        private readonly EventTrackerManager _eventTrackerManager = new EventTrackerManager();
+        private readonly EventTrackerManagerImpl _eventTrackerManager = new EventTrackerManagerImpl();
         //public bool BoolProperty { get; set; }
         //public ReactiveProperty<int> IntProperty { get; } = new ReactiveProperty<int>();
     }

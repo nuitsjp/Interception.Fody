@@ -55,45 +55,69 @@ public class ModuleWeaver
 
     private void WeaveTracker(TypeDefinition typeDefinition, MethodReference initMethodReference)
     {
-        CreateGlobalTrackerHolder();
-        SetEventTrackerManagerField(typeDefinition);
-        foreach (var constructor in typeDefinition.GetConstructors())
-        {
-            var body = constructor.Body;
-            body.Instructions.Remove(body.Instructions.Last());
-            body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
-            body.Instructions.Add(Instruction.Create(OpCodes.Call, initMethodReference));
-            body.Instructions.Add(Instruction.Create(OpCodes.Ret));
-        }
+        var eventTrackerManager = CreateEventTrackerManager();
+        //CreateGlobalTrackerHolder();
+        //SetEventTrackerManagerField(typeDefinition);
+        //foreach (var constructor in typeDefinition.GetConstructors())
+        //{
+        //    var body = constructor.Body;
+        //    body.Instructions.Remove(body.Instructions.Last());
+        //    body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
+        //    body.Instructions.Add(Instruction.Create(OpCodes.Call, initMethodReference));
+        //    body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+        //}
     }
 
-    private void CreateGlobalTrackerHolder()
+    private TypeDefinition CreateEventTrackerManager()
     {
-        var holder = 
+        var result =
             new TypeDefinition(
-                ModuleDefinition.Assembly.Name.Name, 
-                "GlobalEventTrackerHolder", 
-                TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit);
-        ModuleDefinition.Types.Add(holder);
+                ModuleDefinition.Assembly.Name.Name,
+                "EventTrackerManager",
+                TypeAttributes.Public | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit,
+                ModuleDefinition.ImportReference(typeof(EventTrackerManagerBase)));
+        var constructor =
+            new MethodDefinition(
+                ".ctor",
+                MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
+                ModuleDefinition.TypeSystem.Void);
+        constructor.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
+        var baseConstructor =
+            typeof(EventTrackerManagerBase).GetConstructors(BindingFlags.NonPublic | BindingFlags.CreateInstance | BindingFlags.Instance).First();
+        constructor.Body.Instructions.Add(Instruction.Create(OpCodes.Call, ModuleDefinition.ImportReference(baseConstructor)));
+        constructor.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+        result.Methods.Add(constructor);
+        ModuleDefinition.Types.Add(result);
+        return result;
     }
 
-    private void SetEventTrackerManagerField(TypeDefinition typeDefinition)
+    //private void CreateGlobalTrackerHolder()
+    //{
+    //    var holder = 
+    //        new TypeDefinition(
+    //            ModuleDefinition.Assembly.Name.Name, 
+    //            "GlobalEventTrackerHolder", 
+    //            TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit);
+    //    ModuleDefinition.Types.Add(holder);
+    //}
+
+    private void SetEventTrackerManagerField(TypeDefinition typeDefinition, TypeDefinition eventTrackerManager)
     {
-        var eventTrackManager =
-            new FieldDefinition(
-                "__eventTrackerManager", 
-                FieldAttributes.Private | FieldAttributes.InitOnly, 
-                ModuleDefinition.ImportReference(typeof(EventTrackerManager)));
-        typeDefinition.Fields.Add(eventTrackManager);
+        //var eventTrackManager =
+        //    new FieldDefinition(
+        //        "__eventTrackerManager",
+        //        FieldAttributes.Private | FieldAttributes.InitOnly,
+        //        eventTrackerManager);
+        //typeDefinition.Fields.Add(eventTrackManager);
 
-        var eventTrackerManagerCtor =
-            ModuleDefinition.ImportReference(typeof(EventTrackerManager).GetConstructor(new Type[] { }));
+        //var eventTrackerManagerCtor =
+        //    eventTrackerManager.GetConstructor(new Type[] { }));
 
-        var constructor = typeDefinition.GetConstructors().Single(x => x.Parameters.Count == 0);
-        var body = constructor.Body;
-        body.Instructions.Insert(0, Instruction.Create(OpCodes.Ldarg_0));
-        body.Instructions.Insert(1, Instruction.Create(OpCodes.Newobj, eventTrackerManagerCtor));
-        body.Instructions.Insert(2, Instruction.Create(OpCodes.Stfld, eventTrackManager));
+        //var constructor = typeDefinition.GetConstructors().Single(x => x.Parameters.Count == 0);
+        //var body = constructor.Body;
+        //body.Instructions.Insert(0, Instruction.Create(OpCodes.Ldarg_0));
+        //body.Instructions.Insert(1, Instruction.Create(OpCodes.Newobj, eventTrackerManagerCtor));
+        //body.Instructions.Insert(2, Instruction.Create(OpCodes.Stfld, eventTrackManager));
     }
 
 
