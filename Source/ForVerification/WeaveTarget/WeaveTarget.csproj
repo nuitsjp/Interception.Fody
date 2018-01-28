@@ -69,6 +69,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssemblyEventTracker.cs" />
     <Compile Include="Class1.cs" />
     <Compile Include="EventTrackerManagerImpl.cs" />
     <Compile Include="LoggingInterceptor.cs" />

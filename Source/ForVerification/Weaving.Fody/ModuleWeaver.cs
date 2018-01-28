@@ -43,6 +43,7 @@ public class ModuleWeaver
 
     private void WeaveTracker()
     {
+        var hasAssemblyTracker = ModuleDefinition.Assembly.CustomAttributes.Any(x => x.AttributeType.FullName == "Weaving.TrackEventAttribute");
         var types =
             ModuleDefinition.Types.Where(
                     x => x.CustomAttributes.Any(
@@ -56,16 +57,54 @@ public class ModuleWeaver
     private void WeaveTracker(TypeDefinition typeDefinition, MethodReference initMethodReference)
     {
         var eventTrackerManager = CreateEventTrackerManager();
-        //CreateGlobalTrackerHolder();
-        //SetEventTrackerManagerField(typeDefinition);
-        //foreach (var constructor in typeDefinition.GetConstructors())
+        var eventTrackerManagerField =  SetEventTrackerManagerField(typeDefinition, eventTrackerManager);
+        var setEventTracker = eventTrackerManager.BaseType.Resolve().Methods.Single(x => x.Name == "SetEventTracker");
+        var typeStructure = new TypeStructure(ModuleDefinition, typeDefinition);
+        foreach (var constructor in typeDefinition.GetConstructors())
+        {
+            var body = constructor.Body;
+            body.Instructions.Remove(body.Instructions.Last());
+            foreach (var reactiveProperty in typeStructure.ConstantReactiveProperties)
+            {
+                body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
+                body.Instructions.Add(Instruction.Create(OpCodes.Ldfld, eventTrackerManagerField));
+                body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
+                body.Instructions.Add(Instruction.Create(OpCodes.Call, reactiveProperty.GetMethod));
+                var genericSetEventTracker = MakeGeneric(setEventTracker, ModuleDefinition.TypeSystem.Int32);
+                //body.Instructions.Add(Instruction.Create(OpCodes.Callvirt, genericSetEventTracker));
+            }
+            body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+        }
+    }
+
+    public static MethodReference MakeGeneric(MethodDefinition self, params TypeReference[] arguments)
+    {
+        var reference = new GenericInstanceMethod(self);
         //{
-        //    var body = constructor.Body;
-        //    body.Instructions.Remove(body.Instructions.Last());
-        //    body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
-        //    body.Instructions.Add(Instruction.Create(OpCodes.Call, initMethodReference));
-        //    body.Instructions.Add(Instruction.Create(OpCodes.Ret));
-        //}
+        //    DeclaringType = self.DeclaringType,
+        //    HasThis = self.HasThis,
+        //    ExplicitThis = self.ExplicitThis,
+        //    CallingConvention = self.CallingConvention,
+        //};
+
+        var parameters = self.Parameters.ToList();
+        self.Parameters.Clear();
+        foreach (var parameter in parameters)
+        {
+            var instance = new GenericInstanceType(parameter.ParameterType.GetElementType());
+            foreach (var argument in arguments)
+            {
+                instance.GenericArguments.Add(argument);
+            }
+            reference.Parameters.Add(new ParameterDefinition(parameter.Name, ParameterAttributes.None, instance));
+        }
+
+        foreach (var argument in arguments)
+        {
+            reference.GenericArguments.Add(argument);
+        }
+
+        return reference;
     }
 
     private TypeDefinition CreateEventTrackerManager()
@@ -81,7 +120,9 @@ public class ModuleWeaver
                 ".ctor",
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
                 ModuleDefinition.TypeSystem.Void);
+        constructor.Parameters.Add(new ParameterDefinition("instance", ParameterAttributes.None, ModuleDefinition.TypeSystem.Object));
         constructor.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
+        constructor.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_1));
         var baseConstructor =
             typeof(EventTrackerManagerBase).GetConstructors(BindingFlags.NonPublic | BindingFlags.CreateInstance | BindingFlags.Instance).First();
         constructor.Body.Instructions.Add(Instruction.Create(OpCodes.Call, ModuleDefinition.ImportReference(baseConstructor)));
@@ -91,33 +132,25 @@ public class ModuleWeaver
         return result;
     }
 
-    //private void CreateGlobalTrackerHolder()
-    //{
-    //    var holder = 
-    //        new TypeDefinition(
-    //            ModuleDefinition.Assembly.Name.Name, 
-    //            "GlobalEventTrackerHolder", 
-    //            TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit);
-    //    ModuleDefinition.Types.Add(holder);
-    //}
-
-    private void SetEventTrackerManagerField(TypeDefinition typeDefinition, TypeDefinition eventTrackerManager)
+    private FieldDefinition SetEventTrackerManagerField(TypeDefinition typeDefinition, TypeDefinition eventTrackerManager)
     {
-        //var eventTrackManager =
-        //    new FieldDefinition(
-        //        "__eventTrackerManager",
-        //        FieldAttributes.Private | FieldAttributes.InitOnly,
-        //        eventTrackerManager);
-        //typeDefinition.Fields.Add(eventTrackManager);
+        var eventTrackManager =
+            new FieldDefinition(
+                "__eventTrackerManager",
+                FieldAttributes.Private | FieldAttributes.InitOnly,
+                eventTrackerManager);
+        typeDefinition.Fields.Add(eventTrackManager);
 
-        //var eventTrackerManagerCtor =
-        //    eventTrackerManager.GetConstructor(new Type[] { }));
+        var eventTrackerManagerCtor =
+            eventTrackerManager.GetConstructors().Single();
 
-        //var constructor = typeDefinition.GetConstructors().Single(x => x.Parameters.Count == 0);
-        //var body = constructor.Body;
-        //body.Instructions.Insert(0, Instruction.Create(OpCodes.Ldarg_0));
-        //body.Instructions.Insert(1, Instruction.Create(OpCodes.Newobj, eventTrackerManagerCtor));
-        //body.Instructions.Insert(2, Instruction.Create(OpCodes.Stfld, eventTrackManager));
+        var constructor = typeDefinition.GetConstructors().Single(x => x.Parameters.Count == 0);
+        var body = constructor.Body;
+        body.Instructions.Insert(0, Instruction.Create(OpCodes.Ldarg_0));
+        body.Instructions.Insert(1, Instruction.Create(OpCodes.Ldarg_0));
+        body.Instructions.Insert(2, Instruction.Create(OpCodes.Newobj, eventTrackerManagerCtor));
+        body.Instructions.Insert(3, Instruction.Create(OpCodes.Stfld, eventTrackManager));
+        return eventTrackManager;
     }
 
 
